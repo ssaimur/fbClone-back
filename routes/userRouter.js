@@ -4,6 +4,7 @@ const {
   deleteUser,
   followUser,
   getUser,
+  getAllUsers,
 } = require('../controllers/userController');
 const userRouter = express.Router();
 
@@ -26,6 +27,12 @@ userRouter
     */
 
 userRouter.route('/').get(getUser);
+
+/*
+        GET: Get la the users
+    */
+
+userRouter.route('/people').get(getAllUsers);
 
 /*
         PUT: Follow a user

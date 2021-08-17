@@ -1,16 +1,19 @@
 const Posts = require('../models/PostModel');
 const User = require('../models/UserModel');
 const mongoose = require('mongoose');
-const config = require('../config');
+// const config = require('../config');
 const crypto = require('crypto');
+const asyncWrapper = require('../middlewares/asyncWrapper');
 
-const url = config.mongoURI;
+const url = process.env.MONGO_URI;
 const connect = mongoose.createConnection(url, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useCreateIndex: true,
   useFindAndModify: false,
 });
+
+mongoose.set('returnOriginal', false);
 
 let gfs;
 
@@ -25,8 +28,8 @@ connect.once('open', () => {
         POST: Create a post 
     */
 
-const createPost = async (req, res) => {
-  console.log(req.body);
+const createPost = asyncWrapper(async (req, res) => {
+  // console.log(req.body);
   // post the image
   const postCred = {
     caption: req.body.caption,
@@ -35,34 +38,23 @@ const createPost = async (req, res) => {
     fileId: req.file.id,
   };
 
+  console.log(postCred);
+
   if (req.body.isDp) {
     postCred.isDp = true;
   }
 
-  try {
-    const newPost = await Posts.create(postCred);
-    res.status(200).json(newPost);
-  } catch (error) {
-    res.status(500).json('cannot create this post');
-  }
-};
+  const newPost = await Posts.create(postCred);
+  res.status(200).json({ success: true, data: newPost });
+});
 
 /*
         POST: Upload profile picture
     */
 
-const uploadProfilePicture = async (req, res) => {
+const uploadProfilePicture = asyncWrapper(async (req, res) => {
   console.log(req.body);
   // post the image
-  try {
-    const response = await Posts.findOneAndUpdate(
-      { filename: req.body.dpImage },
-      { currentDp: false }
-    );
-    console.log(response);
-  } catch (err) {
-    console.log(err);
-  }
 
   const postCred = {
     caption: req.body.caption,
@@ -70,167 +62,162 @@ const uploadProfilePicture = async (req, res) => {
     filename: req.file.filename,
     fileId: req.file.id,
     isDp: true,
-    currentDp: true,
   };
 
-  try {
-    const newPost = await Posts.create(postCred);
-    console.log(newPost);
-  } catch (error) {
-    console.log(error);
-  }
+  const newPost = await Posts.create(postCred);
+  console.log(newPost);
 
-  try {
-    const updateInUsersEnd = await User.findOneAndUpdate(
-      { _id: req.body.userId },
-      { dpImage: newPost.filename }
-    );
-    console.log(updateInUsersEnd);
-    res.status(200).json({ success: true, data: updateInUsersEnd });
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+  const updateInUsersEnd = await User.findOneAndUpdate(
+    { _id: req.body.userId },
+    { dpImage: newPost.filename }
+  );
+  console.log(updateInUsersEnd);
+  res.status(200).json({
+    success: true,
+    data: newPost,
+    user: updateInUsersEnd,
+  });
+});
 
 /*
         PUT: Update a post
     */
 
-const updatePost = async (req, res) => {
+const updatePost = asyncWrapper(async (req, res) => {
   console.log(req.body);
-  const post = await Posts.findOne({ _id: req.params.id });
-  try {
-    if (post) {
-      try {
-        await post.updateOne({
-          caption: req.body.caption,
-        });
-        return res.status(200).json({
-          success: true,
-          message: `File with ID: ${req.params.id} updated`,
-        });
-      } catch {
-        return res.status(500).json(err);
-      }
-    } else {
-      res.status(200).json({
-        success: false,
-        message: `File with ID: ${req.params.id} not found`,
-      });
-    }
-  } catch (err) {
-    res.status(500).json(err);
-  }
-};
+  const post = await Posts.findByIdAndUpdate(req.params.id, {
+    caption: req.body.caption,
+  });
+
+  console.log({ post });
+
+  return res.status(200).json({
+    success: true,
+    message: `File with ID: ${req.params.id} updated`,
+    data: post,
+  });
+  // if (post) {
+  //   const response = await post.updateOne();
+  // } else {
+  //   res.status(200).json({
+  //     success: false,
+  //     message: `File with ID: ${req.params.id} not found`,
+  //   });
+  // }
+});
 
 /*
         DELETE: Delete a post
     */
 
-const deletePost = async (req, res) => {
-  try {
-    const post = await Posts.findById(req.params.id);
-    if (post.userId === req.body.userId) {
-      await post.deleteOne();
+const deletePost = asyncWrapper(async (req, res) => {
+  const post = await Posts.findById(req.params.id);
+  if (post.userId === req.body.userId) {
+    await post.deleteOne();
 
-      // check for the files and then delete from uploads.files
-      gfs.delete(new mongoose.Types.ObjectId(req.body.fileId), (err, data) => {
-        if (err) {
-          return res.status(404).json({ err: err });
-        }
+    // check for the files and then delete from uploads.files
+    gfs.delete(new mongoose.Types.ObjectId(req.body.fileId), (err, data) => {
+      if (err) {
+        return res.status(404).json({ err: err });
+      }
 
-        res.status(200).json({
-          success: true,
-          message: `File with ID ${req.params.id} is deleted`,
-        });
+      res.status(200).json({
+        success: true,
+        message: `File with ID ${req.params.id} is deleted`,
       });
-    } else {
-      res.status(403).json('you can only delete your post');
-    }
-  } catch (error) {
-    res.status(500).json(error);
+    });
+  } else {
+    res.status(403).json('you can only delete your post');
   }
-};
+});
 
 /*
         PUT: Like/Unlike a post
     */
 
-const likePost = async (req, res) => {
-  try {
-    const post = await Posts.findById(req.params.id);
-    console.log(post);
-    if (!post.likes.includes(req.body.uid)) {
-      await post.updateOne({ $push: { likes: req.body.uid } });
-      res.status(200).json('you like this post');
-    } else {
-      await post.updateOne({ $pull: { likes: req.body.uid } });
-      res.status(200).json('you unlike this post');
-    }
-  } catch (error) {
-    res.status(500).json(error);
+const likePost = asyncWrapper(async (req, res) => {
+  const post = await Posts.findById(req.params.id);
+  console.log(post);
+  if (!post.likes.includes(req.body.uid)) {
+    await post.updateOne({ $push: { likes: req.body.uid } });
+    res.status(200).json('you like this post');
+  } else {
+    await post.updateOne({ $pull: { likes: req.body.uid } });
+    res.status(200).json('you unlike this post');
   }
-};
+});
 
 /*
         GET: Get all posts from the database
     */
 
-const getAllPosts = async (req, res) => {
-  try {
-    const posts = await Posts.find({});
-    res.status(200).json(posts);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+const getAllPosts = asyncWrapper(async (req, res) => {
+  const posts = await Posts.find({});
+  res.status(200).json(posts);
+});
 
 /*
         GET: Get a post
     */
 
-const getAPost = async (req, res) => {
-  try {
-    const post = await Posts.findById(req.params.id);
-    res.status(200).json(post);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+const getAPost = asyncWrapper(async (req, res) => {
+  const post = await Posts.findById(req.params.id);
+  res.status(200).json(post);
+});
 
 /*
       GET: Get newsfeed posts
   */
 
-const getNewsFeedPosts = async (req, res) => {
-  try {
-    const currentUser = await User.findById(req.params.userId);
-    const userPosts = await Posts.find({ userId: currentUser._id });
-    const friendsPost = await Promise.all(
-      currentUser.followings.map((friendsId) => {
-        return Posts.find({ userId: friendsId });
-      })
-    );
-    res.status(200).json(userPosts.concat(...friendsPost));
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+const getNewsFeedPosts = asyncWrapper(async (req, res) => {
+  const currentUser = await User.findById(req.params.userId);
+  const userPosts = await Posts.find({ userId: currentUser._id });
+  const friendsPost = await Promise.all(
+    currentUser.followings.map((friendsId) => {
+      return Posts.find({ userId: friendsId });
+    })
+  );
+  res.status(200).json(userPosts.concat(...friendsPost));
+});
 
 /*
         GET: Get timeline posts
     */
 
-const getTimeLinePosts = async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.params.username });
-    const posts = await Posts.find({ userId: user._id });
-    console.log(posts);
-    res.status(200).json(posts);
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
+const getTimeLinePosts = asyncWrapper(async (req, res) => {
+  const user = await User.findOne({ username: req.params.username });
+  const posts = await Posts.find({ userId: user._id });
+  console.log(posts);
+  res.status(200).json(posts);
+});
+
+/*
+        POST: Post comment on a post
+    */
+
+const postComment = asyncWrapper(async (req, res) => {
+  const buf = crypto.randomBytes(16).toString('hex');
+
+  const post = await Posts.findByIdAndUpdate(req.params.postId, {
+    $push: {
+      comments: { ...req.body, commentId: buf, createdAt: Date.now() },
+    },
+  });
+
+  res.status(200).json({ buf });
+});
+
+/*
+        POST: Remove comment on a post
+    */
+
+const removeComment = asyncWrapper(async (req, res) => {
+  const post = await Posts.findByIdAndUpdate(req.params.postId, {
+    $pull: { comments: { commentId: req.body.commentId } },
+  });
+
+  res.status(200).json({ post });
+});
 
 /*
         GET: Fetchs a particular file by an ID
@@ -260,41 +247,6 @@ const getFileById = (req, res) => {
       });
     }
   });
-};
-
-/*
-        POST: Post comment on a post
-    */
-
-const postComment = async (req, res) => {
-  const buf = crypto.randomBytes(16).toString('hex');
-  try {
-    const post = await Posts.findByIdAndUpdate(req.params.postId, {
-      $push: {
-        comments: { ...req.body, commentId: buf, createdAt: Date.now() },
-      },
-    });
-
-    res.status(200).json({ buf });
-  } catch (error) {
-    res.status(500).json(error);
-  }
-};
-
-/*
-        POST: Remove comment on a post
-    */
-
-const removeComment = async (req, res) => {
-  try {
-    const post = await Posts.findByIdAndUpdate(req.params.postId, {
-      $pull: { comments: { commentId: req.body.commentId } },
-    });
-
-    res.status(200).json({ post });
-  } catch (error) {
-    res.status(500).json(error);
-  }
 };
 
 module.exports = {

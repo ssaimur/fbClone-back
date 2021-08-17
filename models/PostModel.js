@@ -31,10 +31,6 @@ const PostSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    currentDp: {
-      type: Boolean,
-      default: false,
-    },
   },
   { timestamps: true }
 );

@@ -1,8 +1,10 @@
 const bcrypt = require('bcrypt');
+const asyncWrapper = require('../middlewares/asyncWrapper');
 const User = require('../models/UserModel');
 
 /*
-        PUT: Update a user
+        PUT: Update a user 
+        *** not finalized, more work is needed
     */
 
 const updateUser = async (req, res) => {
@@ -32,79 +34,85 @@ const updateUser = async (req, res) => {
         DELETE: Delete a user
     */
 
-const deleteUser = async (req, res) => {
+const deleteUser = asyncWrapper(async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
-    try {
-      const user = await User.findByIdAndDelete({ _id: req.params.id });
-      console.log(user);
-      res.status(200).json(user);
-    } catch (error) {
-      res.status(500).json(error);
-    }
+    const user = await User.findByIdAndDelete({ _id: req.params.id });
+    console.log(user);
+    res.status(200).json(user);
   } else {
     res.status(403).json('you can only delete your account');
   }
-};
+});
 
 /*
         GET: Get a user
     */
 
-const getUser = async (req, res) => {
-  try {
-    const userId = req.query.userId;
-    const username = req.query.username;
-    const user = userId
-      ? await User.findById(userId)
-      : await User.findOne({ username });
-    const { password, createdAt, updatedAt, ...restOfThem } = user._doc;
-    res.status(200).json(restOfThem);
-  } catch (error) {
-    res.status(404).json(error);
-  }
-};
+const getUser = asyncWrapper(async (req, res) => {
+  const userId = req.query.userId;
+  const username = req.query.username;
+  const user = userId
+    ? await User.findById(userId)
+    : await User.findOne({ username });
+  const { password, createdAt, updatedAt, ...restOfThem } = user._doc;
+  res.status(200).json(restOfThem);
+});
+
+/*
+        GET: Get all the users
+    */
+
+const getAllUsers = asyncWrapper(async (req, res) => {
+  const people = await User.find({});
+
+  const newPeople = people.map((item) => {
+    const { username, dpImage, firstName, lastName, gender, _id } = item._doc;
+    newItem = { username, dpImage, firstName, lastName, gender, _id };
+    item = newItem;
+    return item;
+  });
+
+  res.status(200).json({ success: true, data: newPeople });
+});
 
 /*
         PUT: Follow a user
     */
 
-const followUser = async (req, res) => {
+const followUser = asyncWrapper(async (req, res) => {
   if (req.params.id !== req.body.userId) {
-    try {
-      // get who to follow and who is following
-      const userToFollow = await User.findById(req.params.id);
-      const userWhoFollowing = await User.findById(req.body.userId);
+    // get who to follow and who is following
+    const userToFollow = await User.findById(req.params.id);
+    const userWhoFollowing = await User.findById(req.body.userId);
 
-      // if the user is not following then follow
-      if (!userToFollow.followers.includes(req.body.userId)) {
-        await userToFollow.updateOne({ $push: { followers: req.body.userId } });
-        await userWhoFollowing.updateOne({
-          $push: { followings: req.params.id },
-        });
-        console.log('followed');
-        res.status(200).json('user has been followed');
-      }
+    // if the user is not following then follow
+    if (!userToFollow.followers.includes(req.body.userId)) {
+      await userToFollow.updateOne({ $push: { followers: req.body.userId } });
+      await userWhoFollowing.updateOne({
+        $push: { followings: req.params.id },
+      });
+      console.log('followed');
+      res.status(200).json('user has been followed');
+    }
 
-      // if the user is following then unfollow
-      else {
-        await userToFollow.updateOne({ $pull: { followers: req.body.userId } });
-        await userWhoFollowing.updateOne({
-          $pull: { followings: req.params.id },
-        });
-        console.log('unfollowed');
-        res.status(200).json('user has been unfollowed');
-      }
-    } catch (error) {
-      res.status(500).json(error);
+    // if the user is following then unfollow
+    else {
+      await userToFollow.updateOne({ $pull: { followers: req.body.userId } });
+      await userWhoFollowing.updateOne({
+        $pull: { followings: req.params.id },
+      });
+      console.log('unfollowed');
+      res.status(200).json('user has been unfollowed');
     }
   } else {
     res.status(403).json('you cant follow yourself');
   }
-};
+});
 
 module.exports = {
   updateUser,
   deleteUser,
   getUser,
+  getAllUsers,
   followUser,
 };

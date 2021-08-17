@@ -1,18 +1,21 @@
-const createError = require('http-errors');
+// const createError = require('http-errors');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const methodOverride = require('method-override');
-const config = require('./config');
+// const config = require('./config');
 const multer = require('multer');
 const { GridFsStorage } = require('multer-gridfs-storage');
 const crypto = require('crypto');
 const cors = require('cors');
+require('dotenv').config();
 
 const userRouter = require('./routes/userRouter');
 const authRouter = require('./routes/authRouter');
 const postsRouter = require('./routes/postRouter');
+const requireAuth = require('./middlewares/authMiddleware');
+const errorHandler = require('./middlewares/error-handler');
 
 const app = express();
 
@@ -35,7 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 
-const url = config.mongoURI;
+const url = process.env.MONGO_URI;
 const connect = mongoose.connect(url, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -46,7 +49,7 @@ const connect = mongoose.connect(url, {
 // connect to the database
 connect.then(
   () => {
-    console.log('Connected to database: GridApp');
+    console.log('Connected to Database...');
   },
   (err) => console.log(err)
 );
@@ -77,25 +80,18 @@ const storage = new GridFsStorage({
 
 const upload = multer({ storage });
 
-app.use('/api/users', userRouter);
 app.use('/api/auth', authRouter);
+// app.use(requireAuth);
+app.use('/api/users', userRouter);
 app.use('/api/posts', postsRouter(upload));
 
 // catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
-});
+// app.use(function (req, res, next) {
+//   next(createError(404));
+// });
 
 // error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.send('error');
-});
+app.use(errorHandler);
 
 const port = 4000;
 
