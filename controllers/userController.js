@@ -7,28 +7,19 @@ const User = require('../models/UserModel');
         *** not finalized, more work is needed
     */
 
-const updateUser = async (req, res) => {
+const updateUser = asyncWrapper(async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
     if (req.body.password) {
-      try {
-        const salt = await bcrypt.genSalt(15);
-        req.body.password = await bcrypt.hash(req.body.password, salt);
-      } catch (error) {
-        return res.status(500).json(error);
-      }
+      const salt = await bcrypt.genSalt(15);
+      req.body.password = await bcrypt.hash(req.body.password, salt);
     }
 
-    try {
-      await User.findByIdAndUpdate(req.params.id, req.body);
-
-      res.status(200).json('account has been updated');
-    } catch (error) {
-      res.status(500).json(error);
-    }
+    await User.findByIdAndUpdate(req.params.id, req.body);
+    res.status(200).json('account has been updated');
   } else {
     res.status(403).json('you can only change your account');
   }
-};
+});
 
 /*
         DELETE: Delete a user
@@ -37,7 +28,7 @@ const updateUser = async (req, res) => {
 const deleteUser = asyncWrapper(async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
     const user = await User.findByIdAndDelete({ _id: req.params.id });
-    console.log(user);
+
     res.status(200).json(user);
   } else {
     res.status(403).json('you can only delete your account');
@@ -54,7 +45,7 @@ const getUser = asyncWrapper(async (req, res) => {
   const user = userId
     ? await User.findById(userId)
     : await User.findOne({ username });
-  const { password, createdAt, updatedAt, ...restOfThem } = user._doc;
+  const { password, ...restOfThem } = user._doc;
   res.status(200).json(restOfThem);
 });
 
@@ -66,8 +57,17 @@ const getAllUsers = asyncWrapper(async (req, res) => {
   const people = await User.find({});
 
   const newPeople = people.map((item) => {
-    const { username, dpImage, firstName, lastName, gender, _id } = item._doc;
-    newItem = { username, dpImage, firstName, lastName, gender, _id };
+    const { username, dpImage, firstName, lastName, gender, followers, _id } =
+      item._doc;
+    newItem = {
+      username,
+      dpImage,
+      firstName,
+      lastName,
+      gender,
+      followers,
+      _id,
+    };
     item = newItem;
     return item;
   });
@@ -91,7 +91,7 @@ const followUser = asyncWrapper(async (req, res) => {
       await userWhoFollowing.updateOne({
         $push: { followings: req.params.id },
       });
-      console.log('followed');
+
       res.status(200).json('user has been followed');
     }
 
@@ -101,7 +101,7 @@ const followUser = asyncWrapper(async (req, res) => {
       await userWhoFollowing.updateOne({
         $pull: { followings: req.params.id },
       });
-      console.log('unfollowed');
+
       res.status(200).json('user has been unfollowed');
     }
   } else {

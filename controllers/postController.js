@@ -1,7 +1,6 @@
 const Posts = require('../models/PostModel');
 const User = require('../models/UserModel');
 const mongoose = require('mongoose');
-// const config = require('../config');
 const crypto = require('crypto');
 const asyncWrapper = require('../middlewares/asyncWrapper');
 
@@ -29,7 +28,6 @@ connect.once('open', () => {
     */
 
 const createPost = asyncWrapper(async (req, res) => {
-  // console.log(req.body);
   // post the image
   const postCred = {
     caption: req.body.caption,
@@ -37,8 +35,6 @@ const createPost = asyncWrapper(async (req, res) => {
     filename: req.file.filename,
     fileId: req.file.id,
   };
-
-  console.log(postCred);
 
   if (req.body.isDp) {
     postCred.isDp = true;
@@ -53,7 +49,6 @@ const createPost = asyncWrapper(async (req, res) => {
     */
 
 const uploadProfilePicture = asyncWrapper(async (req, res) => {
-  console.log(req.body);
   // post the image
 
   const postCred = {
@@ -65,13 +60,12 @@ const uploadProfilePicture = asyncWrapper(async (req, res) => {
   };
 
   const newPost = await Posts.create(postCred);
-  console.log(newPost);
 
   const updateInUsersEnd = await User.findOneAndUpdate(
     { _id: req.body.userId },
     { dpImage: newPost.filename }
   );
-  console.log(updateInUsersEnd);
+
   res.status(200).json({
     success: true,
     data: newPost,
@@ -84,26 +78,15 @@ const uploadProfilePicture = asyncWrapper(async (req, res) => {
     */
 
 const updatePost = asyncWrapper(async (req, res) => {
-  console.log(req.body);
   const post = await Posts.findByIdAndUpdate(req.params.id, {
     caption: req.body.caption,
   });
-
-  console.log({ post });
 
   return res.status(200).json({
     success: true,
     message: `File with ID: ${req.params.id} updated`,
     data: post,
   });
-  // if (post) {
-  //   const response = await post.updateOne();
-  // } else {
-  //   res.status(200).json({
-  //     success: false,
-  //     message: `File with ID: ${req.params.id} not found`,
-  //   });
-  // }
 });
 
 /*
@@ -137,7 +120,7 @@ const deletePost = asyncWrapper(async (req, res) => {
 
 const likePost = asyncWrapper(async (req, res) => {
   const post = await Posts.findById(req.params.id);
-  console.log(post);
+
   if (!post.likes.includes(req.body.uid)) {
     await post.updateOne({ $push: { likes: req.body.uid } });
     res.status(200).json('you like this post');
@@ -187,7 +170,7 @@ const getNewsFeedPosts = asyncWrapper(async (req, res) => {
 const getTimeLinePosts = asyncWrapper(async (req, res) => {
   const user = await User.findOne({ username: req.params.username });
   const posts = await Posts.find({ userId: user._id });
-  console.log(posts);
+
   res.status(200).json(posts);
 });
 
@@ -239,7 +222,7 @@ const getFileById = (req, res) => {
       files[0].contentType === 'image/svg+xml'
     ) {
       // render image to browser
-      console.log('file request accepted');
+
       gfs.openDownloadStreamByName(req.params.filename).pipe(res);
     } else {
       res.status(404).json({

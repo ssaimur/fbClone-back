@@ -62,9 +62,9 @@ const loginUser = asyncWrapper(async (req, res) => {
     maxAge: maxAge * 1000,
   });
 
-  delete user.password;
+  const { password, ...restOfThem } = user._doc;
 
-  res.status(200).json({ success: true, user });
+  res.status(200).json({ success: true, user: restOfThem });
 });
 
 /*
@@ -73,7 +73,7 @@ const loginUser = asyncWrapper(async (req, res) => {
 
 const logoutUser = async (req, res) => {
   res.cookie('newUser', 'token deleted', { maxAge: 1 });
-  console.log('user logged out');
+
   res.json({ success: true, message: 'User successfully logged out' });
 };
 

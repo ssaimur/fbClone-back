@@ -25,35 +25,4 @@ authRouter.route('/login').post(loginUser);
 
 authRouter.route('/logout').post(logoutUser);
 
-/*
-        POST: Search a user
-    */
-
-authRouter.get('/search', function (req, res, next) {
-  const search = req.query.search;
-
-  User.find(
-    [
-      {
-        $search: {
-          index: 'search users',
-          text: {
-            query: 'ssaimur',
-            path: {
-              wildcard: '*',
-            },
-          },
-        },
-      },
-    ],
-    {
-      _id: 0,
-      __v: 0,
-    },
-    function (err, data) {
-      res.json(data);
-    }
-  );
-});
-
 module.exports = authRouter;

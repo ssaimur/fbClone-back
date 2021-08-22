@@ -4,12 +4,23 @@ const userSchema = new mongoose.Schema(
   {
     firstName: {
       type: String,
-      required: [true, 'Must provide first name'],
-      minlength: 3,
-      maxlength: 20,
+      required: [true, 'Please provide first name'],
+      minlength: [3, 'Invalid first name, minimum 3 characters'],
+      maxlength: [15, 'Invalid first name, maximum 15 characters'],
     },
-    lastName: { type: String },
-    username: { type: String, required: true, unique: true, min: 3, max: 20 },
+    lastName: {
+      type: String,
+      maxlength: [15, 'Invalid last name, maximum 15 characters'],
+    },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
+      match: [
+        /^(?=.{5,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/,
+        'Please provide a valid username',
+      ],
+    },
     dpImage: { type: String, default: '' },
     email: {
       type: String,
@@ -20,14 +31,17 @@ const userSchema = new mongoose.Schema(
       ],
       unique: true,
     },
-    password: { type: String, required: true, min: 6 },
+    password: {
+      type: String,
+      required: [true, 'Please provide password'],
+      min: [6, 'Invalid password! minimum 6 characters'],
+    },
     followers: { type: Array, default: [] },
     followings: { type: Array, default: [] },
     isAdmin: { type: Boolean, default: false },
     desc: { type: String, max: 500 },
     city: { type: String, max: 30 },
-    from: { type: String, max: 30 },
-    gender: { type: String, enum: ['Male', 'Female', 'Prefer not to say'] },
+    gender: { type: String, enum: ['Male', 'Female'] },
   },
   {
     timestamps: true,

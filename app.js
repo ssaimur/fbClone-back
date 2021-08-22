@@ -4,7 +4,6 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const methodOverride = require('method-override');
-// const config = require('./config');
 const multer = require('multer');
 const { GridFsStorage } = require('multer-gridfs-storage');
 const crypto = require('crypto');
@@ -18,10 +17,6 @@ const requireAuth = require('./middlewares/authMiddleware');
 const errorHandler = require('./middlewares/error-handler');
 
 const app = express();
-
-// view engine setup
-// app.set('views', path.join(__dirname, 'views'));
-// app.set('view engine', 'jade');
 
 app.use(
   cors({
@@ -81,9 +76,13 @@ const storage = new GridFsStorage({
 const upload = multer({ storage });
 
 app.use('/api/auth', authRouter);
-// app.use(requireAuth);
+app.use(requireAuth);
 app.use('/api/users', userRouter);
 app.use('/api/posts', postsRouter(upload));
+
+app.get('/', (req, res) => {
+  res.send('Backend is listening...');
+});
 
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {
