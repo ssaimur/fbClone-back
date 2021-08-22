@@ -92,7 +92,7 @@ app.get('/', (req, res) => {
 // error handler
 app.use(errorHandler);
 
-const port = 4000;
+const port = process.env.PORT || 4000;
 
 app.listen(port, () => console.log(`the app is listening at port ${port}...`));
 
