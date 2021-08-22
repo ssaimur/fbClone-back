@@ -75,14 +75,13 @@ const storage = new GridFsStorage({
 
 const upload = multer({ storage });
 
+app.get('/', (req, res) => {
+  res.send('Backend is listening...');
+});
 app.use('/api/auth', authRouter);
 app.use(requireAuth);
 app.use('/api/users', userRouter);
 app.use('/api/posts', postsRouter(upload));
-
-app.get('/', (req, res) => {
-  res.send('Backend is listening...');
-});
 
 // catch 404 and forward to error handler
 // app.use(function (req, res, next) {
