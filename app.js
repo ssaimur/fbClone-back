@@ -20,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: 'https://6123d44893dce60007c8c698--social-firegram.netlify.app/',
+    origin: 'https://social-firegram.netlify.app',
     credentials: true,
   })
 );
