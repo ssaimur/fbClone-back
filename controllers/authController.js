@@ -29,6 +29,8 @@ const registerUser = asyncWrapper(async (req, res) => {
   res.cookie('newUser', token, {
     httpOnly: true,
     maxAge: maxAge * 1000,
+    sameSite: 'none',
+    secure: true,
   });
   res.status(200).json({ success: true, newUser });
 });
@@ -60,6 +62,8 @@ const loginUser = asyncWrapper(async (req, res) => {
   res.cookie('newUser', token, {
     httpOnly: true,
     maxAge: maxAge * 1000,
+    sameSite: 'none',
+    secure: true,
   });
 
   const { password, ...restOfThem } = user._doc;
@@ -72,41 +76,13 @@ const loginUser = asyncWrapper(async (req, res) => {
     */
 
 const logoutUser = async (req, res) => {
-  res.cookie('newUser', 'token deleted', { maxAge: 1 });
+  res.cookie('newUser', 'token deleted', {
+    maxAge: 1,
+    sameSite: 'none',
+    secure: true,
+  });
 
   res.json({ success: true, message: 'User successfully logged out' });
-};
-
-/*
-        POST: Search a user
-    */
-
-const searchUser = function (req, res) {
-  db.collection('textstore').find(
-    {
-      $text: {
-        $search: req.body.query,
-      },
-    },
-    {
-      document: 1,
-      created: 1,
-      _id: 1,
-      textScore: {
-        $meta: 'textScore',
-      },
-    },
-    {
-      sort: {
-        textScore: {
-          $meta: 'textScore',
-        },
-      },
-    }
-  );
-  toArray(function (err, items) {
-    res.send(pagelist(items));
-  });
 };
 
 module.exports = { registerUser, loginUser, logoutUser };

@@ -20,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: 'https://social-firegram.netlify.app',
+    origin: ['https://social-firegram.netlify.app', 'http://localhost:3000'],
     credentials: true,
   })
 );
@@ -80,7 +80,7 @@ app.get('/', (req, res) => {
   res.send('Backend is listening...');
 });
 app.use('/api/auth', authRouter);
-// app.use(requireAuth);
+app.use(requireAuth);
 app.use('/api/users', userRouter);
 app.use('/api/posts', postsRouter(upload));
 
