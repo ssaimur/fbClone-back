@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const asyncWrapper = require('../middlewares/asyncWrapper');
 
-const maxAge = 3 * 24 * 60 * 60;
+const maxAge = 7 * 24 * 60 * 60;
 
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
