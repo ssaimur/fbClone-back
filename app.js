@@ -20,7 +20,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ['https://social-firegram.netlify.app', 'http://localhost:3000'],
+    origin: ['https://firegram-v2.netlify.app', 'http://localhost:3000'],
     credentials: true,
   })
 );
