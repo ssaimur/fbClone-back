@@ -8,11 +8,11 @@ const PostSchema = new Schema(
       type: String,
     },
     filename: {
-      required: true,
+      // required: true,
       type: String,
     },
     fileId: {
-      required: true,
+      // required: true,
       type: String,
     },
     userId: {

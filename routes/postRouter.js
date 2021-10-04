@@ -21,7 +21,7 @@ module.exports = (upload) => {
         POST: Create a post 
     */
 
-  postRouter.route('/upload').post(upload.single('file'), createPost);
+  postRouter.route('/upload').post(upload.any(), createPost);
 
   /*
         POST: Upload profile picture

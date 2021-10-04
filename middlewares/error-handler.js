@@ -25,6 +25,8 @@ const errorHandler = (err, req, res, next) => {
     customError.msg = 'Something went wrong :( please try again later!!';
   }
 
+  console.log({ err });
+
   return res.status(customError.statusCode || 500).json(customError);
 };
 

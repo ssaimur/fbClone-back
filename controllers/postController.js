@@ -32,9 +32,12 @@ const createPost = asyncWrapper(async (req, res) => {
   const postCred = {
     caption: req.body.caption,
     userId: req.body.userId,
-    filename: req.file.filename,
-    fileId: req.file.id,
   };
+
+  if (req.files.length > 0) {
+    postCred.filename = req.files[0].filename;
+    postCred.fileId = req.files[0].id;
+  }
 
   if (req.body.isDp) {
     postCred.isDp = true;
